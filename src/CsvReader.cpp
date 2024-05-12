@@ -26,14 +26,18 @@ CsvReader::CsvReader(IDataSourceStream* source, char fieldSeparator, const CStri
 
 bool CsvReader::seek(int cursor)
 {
+	buffer.setLength(0);
 	row = nullptr;
 	if(!source) {
 		return false;
 	}
 	auto newpos = std::max(cursor, int(start));
-	int pos = source->seekFrom(newpos, SeekOrigin::Start);
-	if(pos != newpos) {
-		return false;
+	if(newpos != int(sourcePos)) {
+		int pos = source->seekFrom(newpos, SeekOrigin::Start);
+		if(pos != newpos) {
+			return false;
+		}
+		sourcePos = newpos;
 	}
 	this->cursor = cursor;
 	if(cursor < int(start)) {
@@ -49,9 +53,8 @@ bool CsvReader::readRow()
 		row = nullptr;
 		return false;
 	}
-	constexpr size_t blockSize{512};
+	constexpr size_t minBufSize{512};
 
-	String buffer(std::move(reinterpret_cast<String&>(row)));
 	constexpr char quoteChar{'"'};
 	enum class FieldKind {
 		unknown,
@@ -64,30 +67,31 @@ bool CsvReader::readRow()
 	char lc{'\0'};
 	unsigned writepos{0};
 
-	cursor = source->seekFrom(0, SeekOrigin::Current);
+	auto buflen = buffer.length();
+	cursor = sourcePos - buflen;
+	unsigned readpos{0};
 
 	while(true) {
-		if(buffer.length() == maxLineLength) {
+		if(buflen == maxLineLength) {
 			debug_w("[CSV] Line buffer limit reached %u", maxLineLength);
 			return false;
 		}
-		size_t buflen = std::min(writepos + blockSize, maxLineLength);
-		if(!buffer.setLength(buflen)) {
-			debug_e("[CSV] Out of memory %u", buflen);
+		size_t newbuflen = std::max(minBufSize, maxLineLength);
+		if(!buffer.setLength(newbuflen)) {
+			debug_e("[CSV] Out of memory %u", newbuflen);
 			return false;
 		}
-		auto len = source->readBytes(buffer.begin() + writepos, buflen - writepos);
+		auto len = source->readBytes(buffer.begin() + buflen, newbuflen - buflen);
 		if(len == 0) {
 			// End of input
 			if(writepos == 0) {
 				return false;
 			}
-			buffer.setLength(writepos);
 			row = std::move(buffer);
 			return true;
 		}
-		buflen = writepos + len;
-		unsigned readpos = writepos;
+		sourcePos += len;
+		buflen += len;
 
 		for(; readpos < buflen; ++readpos) {
 			char c = buffer[readpos];
@@ -137,9 +141,12 @@ bool CsvReader::readRow()
 					} else if(c == '\r') {
 						continue;
 					} else if(c == '\n') {
-						source->seekFrom(readpos + 1 - buflen, SeekOrigin::Current);
-						buffer.setLength(writepos);
-						row = std::move(buffer);
+						auto ptr = buffer.begin();
+						auto tailpos = readpos + 1;
+						auto taillen = buflen - readpos - 1;
+						row = CStringArray(ptr, writepos);
+						memcpy(ptr, ptr + tailpos, taillen);
+						buffer.setLength(taillen);
 						return true;
 					}
 				}
@@ -147,5 +154,6 @@ bool CsvReader::readRow()
 			buffer[writepos++] = c;
 			lc = c;
 		}
+		readpos = writepos;
 	}
 }

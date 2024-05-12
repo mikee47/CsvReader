@@ -40,7 +40,7 @@ class CsvReader
 public:
 	/**
 	 * @brief Construct a CSV reader
-	 * @param source Stream to read CSV text from. Must support random seeking.
+	 * @param source Stream to read CSV text from
 	 * @param fieldSeparator
 	 * @param headings Required if source data does not contain field headings as first row
 	 * @param maxLineLength Limit size of buffer to guard against malformed data
@@ -145,6 +145,7 @@ public:
 	 * @brief Set reader to previously noted position
 	 * @param cursor Value obtained via `tell()`
 	 * @retval bool true on success, false on failure or end of records
+	 * @note Source stream must support random seeking (seekFrom)
 	 *
 	 * If cursor is BOF then there will be no current record until `next()` is called.
 	 * This is the same as if `next()` were called.
@@ -162,7 +163,9 @@ private:
 	size_t maxLineLength;
 	CStringArray headings;
 	CStringArray row;
+	String buffer;
 	unsigned start{0}; ///< Stream position of first record
 	int cursor{BOF};   ///< Stream position for start of current row
+	unsigned sourcePos{0};
 	char fieldSeparator;
 };
