@@ -163,9 +163,11 @@ private:
 	size_t maxLineLength;
 	CStringArray headings;
 	CStringArray row;
-	String buffer;
 	unsigned start{0}; ///< Stream position of first record
 	int cursor{BOF};   ///< Stream position for start of current row
 	unsigned sourcePos{0};
+	uint16_t tailpos{0};
+	uint16_t taillen{0};
 	char fieldSeparator;
+	bool eof{false};
 };
