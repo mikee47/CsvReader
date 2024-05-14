@@ -48,7 +48,8 @@ public:
 
 	/**
 	 * @brief Construct a CSV parser
-	 * @param fieldSeparator
+	 * @param fieldSeparator Single character such as ',', '\t'
+	 * 	or '\0' for whitespace-separated fields with leading/trailing whitespace discarded
 	 * @param headings Required if source data does not contain field headings as first row
 	 * @param maxLineLength Limit size of buffer to guard against malformed data
 	 */

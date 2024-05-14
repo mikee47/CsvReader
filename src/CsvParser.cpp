@@ -63,6 +63,9 @@ bool CsvParser::readRow(Stream& source, bool eof)
 	constexpr char quoteChar{'"'};
 	const size_t maxbuflen = std::max(minBufSize, maxLineLength);
 
+	// Fields separated by whitespace and ignore leading/trailing whitespace
+	bool wssep = (fieldSeparator == '\0');
+
 	/*
 	 * Ensure readpos > writepos.
 	 * Row data is always <= source length, but when result is converted (in-situ) to CStringArray
@@ -150,9 +153,11 @@ bool CsvParser::readRow(Stream& source, bool eof)
 			flags.escape = false;
 		} else {
 			if(fieldKind == FieldKind::unknown) {
-				if(c == '#') {
+				if(wssep && isspace(c)) {
+					continue;
+				}
+				if(wssep && c == '#') {
 					flags.comment = true;
-					writepos = 0;
 					continue;
 				}
 				if(c == quoteChar) {
@@ -178,14 +183,16 @@ bool CsvParser::readRow(Stream& source, bool eof)
 				flags.escape = true;
 				continue;
 			} else if(!flags.quote) {
-				if(c == fieldSeparator) {
-					c = '\0';
-					fieldKind = FieldKind::unknown;
-				} else if(c == '\r') {
+				if(c == '\r') {
 					continue;
 				} else if(c == '\n') {
 					break;
+				} else if((wssep && isspace(c)) || c == fieldSeparator) {
+					c = '\0';
+					fieldKind = FieldKind::unknown;
 				}
+			} else if(wssep && isspace(c)) {
+				continue;
 			}
 		}
 		bufptr[writepos++] = c;
