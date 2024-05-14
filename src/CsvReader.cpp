@@ -13,16 +13,34 @@
 #include "CsvReader.h"
 #include <debug_progmem.h>
 
-void CsvReader::reset()
+CsvReader::CsvReader(IDataSourceStream* source, char fieldSeparator, const CStringArray& headings, size_t maxLineLength)
+	: source(source), maxLineLength(maxLineLength), headings(headings), fieldSeparator(fieldSeparator)
 {
-	if(source) {
-		source->seekFrom(0, SeekOrigin::Start);
-		if(!userHeadingsProvided) {
-			readRow();
-			headings = row;
-		}
+	if(source && !headings) {
+		readRow();
+		this->headings = std::move(row);
+		start = source->seekFrom(0, SeekOrigin::Current);
 	}
+	cursor = BOF;
+}
+
+bool CsvReader::seek(int cursor)
+{
 	row = nullptr;
+	if(!source) {
+		return false;
+	}
+	auto newpos = std::max(cursor, int(start));
+	int pos = source->seekFrom(newpos, SeekOrigin::Start);
+	if(pos != newpos) {
+		return false;
+	}
+	this->cursor = cursor;
+	if(cursor < int(start)) {
+		// Before first record has been read
+		return true;
+	}
+	return readRow();
 }
 
 bool CsvReader::readRow()
@@ -46,6 +64,8 @@ bool CsvReader::readRow()
 	char lc{'\0'};
 	unsigned writepos{0};
 
+	cursor = source->seekFrom(0, SeekOrigin::Current);
+
 	while(true) {
 		if(buffer.length() == maxLineLength) {
 			debug_w("[CSV] Line buffer limit reached %u", maxLineLength);
@@ -58,6 +78,7 @@ bool CsvReader::readRow()
 		}
 		auto len = source->readBytes(buffer.begin() + writepos, buflen - writepos);
 		if(len == 0) {
+			// End of input
 			if(writepos == 0) {
 				return false;
 			}

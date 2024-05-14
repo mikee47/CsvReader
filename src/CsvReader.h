@@ -40,18 +40,13 @@ class CsvReader
 public:
 	/**
 	 * @brief Construct a CSV reader
-	 * @param source Stream to read CSV text from
+	 * @param source Stream to read CSV text from. Must support random seeking.
 	 * @param fieldSeparator
 	 * @param headings Required if source data does not contain field headings as first row
 	 * @param maxLineLength Limit size of buffer to guard against malformed data
 	 */
 	CsvReader(IDataSourceStream* source, char fieldSeparator = ',', const CStringArray& headings = nullptr,
-			  size_t maxLineLength = 2048)
-		: source(source), fieldSeparator(fieldSeparator), userHeadingsProvided(headings), maxLineLength(maxLineLength),
-		  headings(headings)
-	{
-		reset();
-	}
+			  size_t maxLineLength = 2048);
 
 	/**
 	 * @brief Reset reader to start of CSV file
@@ -59,10 +54,14 @@ public:
 	 * Cursor is set to 'before start'.
 	 * Call 'next()' to fetch first record.
 	 */
-	void reset();
+	void reset()
+	{
+		seek(BOF);
+	}
 
 	/**
 	 * @brief Seek to next record
+	 * @retval bool true on success, false if there are no more records
 	 */
 	bool next()
 	{
@@ -131,13 +130,39 @@ public:
 		return row;
 	}
 
+	/**
+	 * @brief Get cursor position for current row
+	 *
+	 * The returned value indicates source stream offset for start of current row.
+	 * After construction cursor is set to -1. This indicates 'Before first record' (BOF).
+	 */
+	int tell() const
+	{
+		return cursor;
+	}
+
+	/**
+	 * @brief Set reader to previously noted position
+	 * @param cursor Value obtained via `tell()`
+	 * @retval bool true on success, false on failure or end of records
+	 *
+	 * If cursor is BOF then there will be no current record until `next()` is called.
+	 * This is the same as if `next()` were called.
+	 *
+	 * Otherwise the corresponding row will be available via `getRow()`.
+	 */
+	bool seek(int cursor);
+
 private:
 	bool readRow();
 
+	static constexpr int BOF{-1}; ///< Indicates 'Before First Record'
+
 	std::unique_ptr<IDataSourceStream> source;
-	char fieldSeparator;
-	bool userHeadingsProvided;
 	size_t maxLineLength;
 	CStringArray headings;
 	CStringArray row;
+	unsigned start{0}; ///< Stream position of first record
+	int cursor{BOF};   ///< Stream position for start of current row
+	char fieldSeparator;
 };
