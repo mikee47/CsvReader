@@ -82,7 +82,7 @@ public:
 	 * @param index Column index, starts at 0
 	 * @retval const char* nullptr if index is not valid
 	 */
-	const char* getValue(unsigned index)
+	const char* getValue(unsigned index) const
 	{
 		return row[index];
 	}
@@ -92,7 +92,7 @@ public:
 	 * @param index Column name
 	 * @retval const char* nullptr if name is not found
 	 */
-	const char* getValue(const char* name)
+	const char* getValue(const char* name) const
 	{
 		return getValue(getColumn(name));
 	}
@@ -102,17 +102,17 @@ public:
 	 * @param name Column name to find
 	 * @retval int -1 if name is not found
 	 */
-	int getColumn(const char* name)
+	int getColumn(const char* name) const
 	{
 		return headings.indexOf(name);
 	}
 
 	/**
-	 * @brief Determine if row is valid
+	 * @brief Determine if reader is valid
 	 */
 	explicit operator bool() const
 	{
-		return bool(row);
+		return bool(source);
 	}
 
 	/**

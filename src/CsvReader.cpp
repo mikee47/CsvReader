@@ -15,16 +15,22 @@
 
 void CsvReader::reset()
 {
-	source->seekFrom(0, SeekOrigin::Start);
-	if(!userHeadingsProvided) {
-		readRow();
-		headings = row;
+	if(source) {
+		source->seekFrom(0, SeekOrigin::Start);
+		if(!userHeadingsProvided) {
+			readRow();
+			headings = row;
+		}
 	}
 	row = nullptr;
 }
 
 bool CsvReader::readRow()
 {
+	if(!source) {
+		row = nullptr;
+		return false;
+	}
 	constexpr size_t blockSize{512};
 
 	String buffer(std::move(reinterpret_cast<String&>(row)));
