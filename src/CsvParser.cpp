@@ -23,9 +23,7 @@ bool CsvParser::parse(Stream& source, bool isFinished)
 			continue;
 		}
 		if(!headings) {
-			this->headings = row;
-			start = sourcePos - taillen;
-			cursor = BOF;
+			setHeadings();
 			continue;
 		}
 		if(rowCallback && !rowCallback(*this, row)) {
@@ -35,10 +33,28 @@ bool CsvParser::parse(Stream& source, bool isFinished)
 	return true;
 }
 
+void CsvParser::setHeadings()
+{
+	this->headings = row;
+	start = sourcePos - taillen;
+	cursor = BOF;
+}
+
 bool CsvParser::parse(const char* data, size_t length)
 {
 	LimitedMemoryStream stream(const_cast<char*>(data), length, length, false);
 	return parse(stream, length == 0);
+}
+
+void CsvParser::reset()
+{
+	if(!buffer) {
+		buffer = std::move(reinterpret_cast<String&>(row));
+	}
+	buffer = "";
+	cursor = BOF;
+	sourcePos = start;
+	taillen = 0;
 }
 
 bool CsvParser::readRow(Stream& source, bool eof)

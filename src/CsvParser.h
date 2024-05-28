@@ -136,19 +136,22 @@ public:
 		return cursor;
 	}
 
-private:
+protected:
 	bool readRow(Stream& source, bool eof);
+	void setHeadings();
 
 	static constexpr int BOF{-1}; ///< Indicates 'Before First Record'
 
+	unsigned start{0}; ///< Stream position of first record
+	int cursor{BOF};   ///< Stream position for start of current row
+	unsigned sourcePos{0};
+
+private:
 	RowCallback rowCallback;
 	size_t maxLineLength;
 	CStringArray headings;
 	CStringArray row;
 	String buffer;
-	unsigned start{0}; ///< Stream position of first record
-	int cursor{BOF};   ///< Stream position for start of current row
-	unsigned sourcePos{0};
 	uint16_t tailpos{0};
 	uint16_t taillen{0};
 	char fieldSeparator;
