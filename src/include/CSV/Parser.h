@@ -1,5 +1,5 @@
 /**
- * CsvParser.h
+ * Parser.h
  *
  * Copyright 2021 mikee47 <mike@sillyhouse.net>
  *
@@ -23,6 +23,8 @@
 #include <Data/CStringArray.h>
 #include <Data/Stream/DataSourceStream.h>
 
+namespace CSV
+{
 /**
  * @brief Class to parse a CSV file
  *
@@ -42,7 +44,7 @@
  * - Escapes codes within fields will be converted: \n \r \t \", \\
  * - Field separator can be changed in constructor
  */
-class CsvParser
+class Parser
 {
 public:
 	/**
@@ -51,7 +53,7 @@ public:
 	 * @param row
 	 * @retval bool Return true to continue parsing, false to stop
 	 */
-	using RowCallback = Delegate<bool(const CsvParser& parser, const CStringArray& row)>;
+	using RowCallback = Delegate<bool(const Parser& parser, const CStringArray& row)>;
 
 	struct Options {
 		/**
@@ -77,7 +79,7 @@ public:
 	 * @brief Construct a CSV parser
 	 * @param options
 	 */
-	CsvParser(const Options& options) : options(options)
+	Parser(const Options& options) : options(options)
 	{
 	}
 
@@ -188,3 +190,5 @@ private:
 	uint16_t tailpos{0};
 	uint16_t taillen{0};
 };
+
+} // namespace CSV

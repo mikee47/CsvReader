@@ -1,9 +1,9 @@
 /**
- * CsvReader.h
+ * Reader.h
  *
  * Copyright 2021 mikee47 <mike@sillyhouse.net>
  *
- * This file is part of the CsvReader Library
+ * This file is part of the Reader Library
  *
  * This library is free software: you can redistribute it and/or modify it under the terms of the
  * GNU General Public License as published by the Free Software Foundation, version 3 or later.
@@ -19,17 +19,19 @@
 
 #pragma once
 
-#include "CsvParser.h"
+#include "Parser.h"
 #include <memory>
 
+namespace CSV
+{
 /**
  * @brief Class to read a CSV file
  *
  * This class 
- * @see   See CsvParser for details
+ * @see   See Parser for details
  *
  */
-class CsvReader : private CsvParser
+class Reader : private Parser
 {
 public:
 	/**
@@ -39,8 +41,8 @@ public:
 	 * @param headings Required if source data does not contain field headings as first row
 	 * @param maxLineLength Limit size of buffer to guard against malformed data
 	 */
-	CsvReader(IDataSourceStream* source, char fieldSeparator = ',', const CStringArray& headings = nullptr,
-			  uint16_t maxLineLength = 2048);
+	Reader(IDataSourceStream* source, char fieldSeparator = ',', const CStringArray& headings = nullptr,
+		   uint16_t maxLineLength = 2048);
 
 	/**
 	 * @brief Reset reader to start of CSV file
@@ -70,7 +72,7 @@ public:
 		return headings.count();
 	}
 
-	using CsvParser::getRow;
+	using Parser::getRow;
 
 	/**
 	 * @brief Get a value from the current row
@@ -118,7 +120,7 @@ public:
 		return headings;
 	}
 
-	using CsvParser::tell;
+	using Parser::tell;
 
 	/**
 	 * @brief Set reader to previously noted position
@@ -142,3 +144,5 @@ private:
 	std::unique_ptr<IDataSourceStream> source;
 	CStringArray headings;
 };
+
+} // namespace CSV

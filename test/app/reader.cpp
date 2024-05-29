@@ -1,5 +1,5 @@
 #include <SmingTest.h>
-#include <CsvReader.h>
+#include <CSV/Reader.h>
 
 DEFINE_FSTR_LOCAL(
 	test1_csv,
@@ -24,7 +24,7 @@ public:
 	{
 		TEST_CASE("Basic")
 		{
-			CsvReader reader(new FSTR::Stream(test1_csv, ','));
+			CSV::Reader reader(new FSTR::Stream(test1_csv, ','));
 
 			const char* sep = ";";
 

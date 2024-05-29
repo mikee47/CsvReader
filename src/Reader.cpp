@@ -1,9 +1,9 @@
 /**
- * CsvReader.cpp
+ * Reader.cpp
  *
  * Copyright 2021 mikee47 <mike@sillyhouse.net>
  *
- * This file is part of the CsvReader Library
+ * This file is part of the Reader Library
  *
  * This library is free software: you can redistribute it and/or modify it under the terms of the
  * GNU General Public License as published by the Free Software Foundation, version 3 or later.
@@ -17,11 +17,12 @@
  *
  ****/
 
-#include "CsvReader.h"
+#include "include/CSV/Reader.h"
 
-CsvReader::CsvReader(IDataSourceStream* source, char fieldSeparator, const CStringArray& headings,
-					 uint16_t maxLineLength)
-	: CsvParser(Options{
+namespace CSV
+{
+Reader::Reader(IDataSourceStream* source, char fieldSeparator, const CStringArray& headings, uint16_t maxLineLength)
+	: Parser(Options{
 		  .lineLength = maxLineLength,
 		  .fieldSeparator = fieldSeparator,
 	  }),
@@ -35,10 +36,10 @@ CsvReader::CsvReader(IDataSourceStream* source, char fieldSeparator, const CStri
 	cursor = BOF;
 }
 
-bool CsvReader::seek(int cursor)
+bool Reader::seek(int cursor)
 {
 	int curpos = sourcePos;
-	CsvParser::reset();
+	Parser::reset();
 	if(!source) {
 		return false;
 	}
@@ -57,3 +58,5 @@ bool CsvReader::seek(int cursor)
 	}
 	return readRow(*source);
 }
+
+} // namespace CSV

@@ -1,5 +1,5 @@
 #include <SmingTest.h>
-#include <CsvReader.h>
+#include <CSV/Parser.h>
 #include <malloc_count.h>
 
 namespace
@@ -51,14 +51,14 @@ private:
 
 		Serial << endl << _F(">> Parse file '") << filename << '\'' << endl;
 
-		CsvParser::RowCallback callback(&ParserTest::handleRow, this);
+		CSV::Parser::RowCallback callback(&ParserTest::handleRow, this);
 
 		CHECK(file.open(filename));
-		CsvParser::Options options{
+		CSV::Parser::Options options{
 			.commentChars = "#",
 			.fieldSeparator = sep,
 		};
-		parser = std::make_unique<CsvParser>(options);
+		parser = std::make_unique<CSV::Parser>(options);
 
 		if(mode == Mode::timed) {
 			printHeap();
@@ -80,7 +80,7 @@ private:
 		}
 	}
 
-	bool handleRow(const CsvParser& parser, const CStringArray& row)
+	bool handleRow(const CSV::Parser& parser, const CStringArray& row)
 	{
 		switch(mode) {
 		case Mode::print:
@@ -100,7 +100,7 @@ private:
 	}
 
 	File file;
-	std::unique_ptr<CsvParser> parser;
+	std::unique_ptr<CSV::Parser> parser;
 	size_t totalRowSize{0};
 	Mode mode{};
 };

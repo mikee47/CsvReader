@@ -1,5 +1,5 @@
 /**
- * CsvParser.cpp
+ * Parser.cpp
  *
  * Copyright 2021 mikee47 <mike@sillyhouse.net>
  *
@@ -17,20 +17,22 @@
  *
  ****/
 
-#include "CsvParser.h"
+#include "include/CSV/Parser.h"
 #include <Data/Stream/LimitedMemoryStream.h>
 #include <debug_progmem.h>
 
 #define DEBUG_PARSER 0
 
+namespace CSV
+{
 /*
  * Ensure readpos > writepos.
  * Row data is always <= source length, but when result is converted (in-situ) to CStringArray
  * an additional '\0' (NUL) could overwrite our tail data.
  */
-#define READ_OFFSET size_t(1)
+static const size_t READ_OFFSET = 1;
 
-bool CsvParser::parse(const RowCallback& callback, Stream& source, bool eof)
+bool Parser::parse(const RowCallback& callback, Stream& source, bool eof)
 {
 	for(;;) {
 		auto len = fillBuffer(source);
@@ -46,7 +48,7 @@ bool CsvParser::parse(const RowCallback& callback, Stream& source, bool eof)
 	}
 }
 
-bool CsvParser::parse(const RowCallback& callback, const char* data, size_t length)
+bool Parser::parse(const RowCallback& callback, const char* data, size_t length)
 {
 	bool eof = (length == 0);
 	LimitedMemoryStream source(const_cast<char*>(data), length, length, false);
@@ -64,7 +66,7 @@ bool CsvParser::parse(const RowCallback& callback, const char* data, size_t leng
 	}
 }
 
-bool CsvParser::readRow(IDataSourceStream& source)
+bool Parser::readRow(IDataSourceStream& source)
 {
 	auto len = fillBuffer(source);
 	bool eof = source.isFinished();
@@ -74,7 +76,7 @@ bool CsvParser::readRow(IDataSourceStream& source)
 	return parseRow(eof);
 }
 
-void CsvParser::reset()
+void Parser::reset()
 {
 	if(!buffer) {
 		buffer = row.release();
@@ -87,7 +89,7 @@ void CsvParser::reset()
 	taillen = 0;
 }
 
-size_t CsvParser::fillBuffer(Stream& source)
+size_t Parser::fillBuffer(Stream& source)
 {
 	const size_t minBufSize{512};
 	const size_t maxbuflen = std::max(minBufSize, READ_OFFSET + options.lineLength + 2);
@@ -130,7 +132,7 @@ size_t CsvParser::fillBuffer(Stream& source)
 	return buflen - READ_OFFSET;
 }
 
-bool CsvParser::parseRow(bool eof)
+bool Parser::parseRow(bool eof)
 {
 	constexpr char quoteChar{'"'};
 
@@ -264,3 +266,5 @@ bool CsvParser::parseRow(bool eof)
 
 	return true;
 }
+
+} // namespace CSV
