@@ -81,9 +81,29 @@ public:
 	{
 	}
 
+	/**
+	 * @brief Parse all available data and invoke callback for each row
+	 * @param callback
+	 * @param source
+	 * @param isFinished Set to true when there is no further data available.
+	 * This ensures final line is processed if it isn't newline-terminated.
+	 */
 	bool parse(const RowCallback& callback, Stream& source, bool isFinished);
 
+	/**
+	 * @brief Parse all available data and invoke callback for each row
+	 * @param callback Invoke for each row
+	 * @param data Buffer containing data to read
+	 * @param length Number of characters in data
+	 * Call with length = 0 to process final line if it isn't newline-terminated.
+	 */
 	bool parse(const RowCallback& callback, const char* data, size_t length);
+
+	/**
+	 * @brief Read a single data row
+	 * @retval bool false when there are no more rows
+	 */
+	bool readRow(IDataSourceStream& source);
 
 	/**
 	 * @brief Reset parser to initial conditions
@@ -93,16 +113,6 @@ public:
 	 * Headings are preserved.
 	 */
 	void reset();
-
-	/**
-	 * @brief Get a value from the current row
-	 * @param index Column index, starts at 0
-	 * @retval const char* nullptr if index is not valid
-	 */
-	const char* getValue(unsigned index) const
-	{
-		return row[index];
-	}
 
 	/**
 	 * @brief Get current row
@@ -164,7 +174,6 @@ public:
 protected:
 	size_t fillBuffer(Stream& source);
 	bool parseRow(bool eof);
-	bool readRow(IDataSourceStream& source);
 
 	static constexpr int BOF{-1}; ///< Indicates 'Before First Record'
 

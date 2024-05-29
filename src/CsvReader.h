@@ -22,7 +22,14 @@
 #include "CsvParser.h"
 #include <memory>
 
-class CsvReader : public CsvParser
+/**
+ * @brief Class to read a CSV file
+ *
+ * This class 
+ * @see   See CsvParser for details
+ *
+ */
+class CsvReader : private CsvParser
 {
 public:
 	/**
@@ -56,40 +63,6 @@ public:
 	}
 
 	/**
-	 * @brief Determine if reader is valid
-	 */
-	explicit operator bool() const
-	{
-		return bool(source);
-	}
-
-	/**
-	 * @brief Set reader to previously noted position
-	 * @param cursor Value obtained via `tell()`
-	 * @retval bool true on success, false on failure or end of records
-	 * @note Source stream must support random seeking (seekFrom)
-	 *
-	 * If cursor is BOF then there will be no current record until `next()` is called.
-	 * This is the same as if `next()` were called.
-	 *
-	 * Otherwise the corresponding row will be available via `getRow()`.
-	 */
-	bool seek(int cursor);
-
-	bool seek(Cursor cursor)
-	{
-		return seek(cursor.start);
-	}
-
-	/**
-	 * @brief Get headings
-	 */
-	const CStringArray& getHeadings() const
-	{
-		return headings;
-	}
-
-	/**
 	 * @brief Get number of columns
 	 */
 	unsigned count() const
@@ -97,7 +70,17 @@ public:
 		return headings.count();
 	}
 
-	using CsvParser::getValue;
+	using CsvParser::getRow;
+
+	/**
+	 * @brief Get a value from the current row
+	 * @param index Column index, starts at 0
+	 * @retval const char* nullptr if index is not valid
+	 */
+	const char* getValue(unsigned index) const
+	{
+		return getRow()[index];
+	}
 
 	/**
 	 * @brief Get a value from the current row
@@ -117,6 +100,42 @@ public:
 	int getColumn(const char* name) const
 	{
 		return headings.indexOf(name);
+	}
+
+	/**
+	 * @brief Determine if reader is valid
+	 */
+	explicit operator bool() const
+	{
+		return bool(source);
+	}
+
+	/**
+	 * @brief Get headings
+	 */
+	const CStringArray& getHeadings() const
+	{
+		return headings;
+	}
+
+	using CsvParser::tell;
+
+	/**
+	 * @brief Set reader to previously noted position
+	 * @param cursor Value obtained via `tell()`
+	 * @retval bool true on success, false on failure or end of records
+	 * @note Source stream must support random seeking (seekFrom)
+	 *
+	 * If cursor is BOF then there will be no current record until `next()` is called.
+	 * This is the same as if `next()` were called.
+	 *
+	 * Otherwise the corresponding row will be available via `getRow()`.
+	 */
+	bool seek(int cursor);
+
+	bool seek(Cursor cursor)
+	{
+		return seek(cursor.start);
 	}
 
 private:
