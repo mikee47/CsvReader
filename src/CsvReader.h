@@ -33,7 +33,7 @@ public:
 	 * @param maxLineLength Limit size of buffer to guard against malformed data
 	 */
 	CsvReader(IDataSourceStream* source, char fieldSeparator = ',', const CStringArray& headings = nullptr,
-			  size_t maxLineLength = 2048);
+			  uint16_t maxLineLength = 2048);
 
 	/**
 	 * @brief Reset reader to start of CSV file
@@ -76,6 +76,50 @@ public:
 	 */
 	bool seek(int cursor);
 
+	bool seek(Cursor cursor)
+	{
+		return seek(cursor.start);
+	}
+
+	/**
+	 * @brief Get headings
+	 */
+	const CStringArray& getHeadings() const
+	{
+		return headings;
+	}
+
+	/**
+	 * @brief Get number of columns
+	 */
+	unsigned count() const
+	{
+		return headings.count();
+	}
+
+	using CsvParser::getValue;
+
+	/**
+	 * @brief Get a value from the current row
+	 * @param index Column name
+	 * @retval const char* nullptr if name is not found
+	 */
+	const char* getValue(const char* name) const
+	{
+		return getValue(getColumn(name));
+	}
+
+	/**
+	 * @brief Get index of column given its name
+	 * @param name Column name to find
+	 * @retval int -1 if name is not found
+	 */
+	int getColumn(const char* name) const
+	{
+		return headings.indexOf(name);
+	}
+
 private:
 	std::unique_ptr<IDataSourceStream> source;
+	CStringArray headings;
 };

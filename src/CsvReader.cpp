@@ -18,16 +18,19 @@
  ****/
 
 #include "CsvReader.h"
-#include <debug_progmem.h>
 
-#define DEBUG_READER 0
-
-CsvReader::CsvReader(IDataSourceStream* source, char fieldSeparator, const CStringArray& headings, size_t maxLineLength)
-	: CsvParser(nullptr, fieldSeparator, headings, maxLineLength), source(source)
+CsvReader::CsvReader(IDataSourceStream* source, char fieldSeparator, const CStringArray& headings,
+					 uint16_t maxLineLength)
+	: CsvParser(Options{
+		  .lineLength = maxLineLength,
+		  .fieldSeparator = fieldSeparator,
+	  }),
+	  source(source), headings(headings)
 {
-	if(source && !getHeadings()) {
+	if(source && !headings) {
 		readRow(*source);
-		setHeadings();
+		this->headings = getRow();
+		start = getCursor().end;
 	}
 	cursor = BOF;
 }

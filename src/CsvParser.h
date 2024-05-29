@@ -53,22 +53,37 @@ public:
 	 */
 	using RowCallback = Delegate<bool(const CsvParser& parser, const CStringArray& row)>;
 
+	struct Options {
+		/**
+		 * Optional list of characters matching start of comment line
+		 */
+		const char* commentChars = nullptr;
+		/**
+		 * Maximum number of characters in line, including any escapes
+		 */
+		uint16_t lineLength = 256;
+		/**
+		 * Single character such as ',', '\t'
+		 * or '\0' for whitespace-separated fields with leading/trailing whitespace discarded
+		 */
+		char fieldSeparator = ',';
+		/**
+		 * @brief Set to true to return comment lines, otherwise they're discarded
+		 */
+		bool wantComments = false;
+	};
+
 	/**
 	 * @brief Construct a CSV parser
-	 * @param fieldSeparator Single character such as ',', '\t'
-	 * 	or '\0' for whitespace-separated fields with leading/trailing whitespace discarded
-	 * @param headings Required if source data does not contain field headings as first row
-	 * @param maxLineLength Limit size of buffer to guard against malformed data
+	 * @param options
 	 */
-	CsvParser(RowCallback callback, char fieldSeparator = ',', const CStringArray& headings = nullptr,
-			  size_t maxLineLength = 2048)
-		: rowCallback(callback), maxLineLength(maxLineLength), headings(headings), fieldSeparator(fieldSeparator)
+	CsvParser(const Options& options) : options(options)
 	{
 	}
 
-	bool parse(Stream& source, bool isFinished);
+	bool parse(const RowCallback& callback, Stream& source, bool isFinished);
 
-	bool parse(const char* data, size_t length);
+	bool parse(const RowCallback& callback, const char* data, size_t length);
 
 	/**
 	 * @brief Reset parser to initial conditions
@@ -80,14 +95,6 @@ public:
 	void reset();
 
 	/**
-	 * @brief Get number of columns
-	 */
-	unsigned count() const
-	{
-		return headings.count();
-	}
-
-	/**
 	 * @brief Get a value from the current row
 	 * @param index Column index, starts at 0
 	 * @retval const char* nullptr if index is not valid
@@ -95,34 +102,6 @@ public:
 	const char* getValue(unsigned index) const
 	{
 		return row[index];
-	}
-
-	/**
-	 * @brief Get a value from the current row
-	 * @param index Column name
-	 * @retval const char* nullptr if name is not found
-	 */
-	const char* getValue(const char* name) const
-	{
-		return getValue(getColumn(name));
-	}
-
-	/**
-	 * @brief Get index of column given its name
-	 * @param name Column name to find
-	 * @retval int -1 if name is not found
-	 */
-	int getColumn(const char* name) const
-	{
-		return headings.indexOf(name);
-	}
-
-	/**
-	 * @brief Get headings
-	 */
-	const CStringArray& getHeadings() const
-	{
-		return headings;
 	}
 
 	/**
@@ -144,26 +123,59 @@ public:
 		return cursor;
 	}
 
+	/**
+	 * @brief Contains location details of the current record in the source stream
+	 */
+	struct Cursor {
+		int start;	///< BOF if there is no current record
+		unsigned end; ///< One-past end of record
+
+		/**
+		 * @brief Get number of source characters in record data
+		 */
+		size_t length() const
+		{
+			return (start < 0) ? 0 : end - unsigned(start);
+		}
+
+		/**
+		 * @brief Convenience operator for debugging, etc.
+		 */
+		explicit operator String() const
+		{
+			String s;
+			s += '{';
+			s += start;
+			s += ',';
+			s += length();
+			s += '}';
+			return s;
+		}
+	};
+
+	/**
+	 * @brief Get cursor position for current row
+	 */
+	Cursor getCursor() const
+	{
+		return {cursor, sourcePos - taillen};
+	}
+
 protected:
 	size_t fillBuffer(Stream& source);
 	bool parseRow(bool eof);
 	bool readRow(IDataSourceStream& source);
-	void setHeadings();
 
 	static constexpr int BOF{-1}; ///< Indicates 'Before First Record'
 
-	unsigned start{0}; ///< Stream position of first record
-	int cursor{BOF};   ///< Stream position for start of current row
-	unsigned sourcePos{0};
+	Options options;
+	unsigned start{0};	 ///< Stream position of first record
+	int cursor{BOF};	   ///< Stream position for start of current row
+	unsigned sourcePos{0}; ///< Stream position for (one-past) end of current row
 
 private:
-	RowCallback rowCallback;
-
-	size_t maxLineLength;
-	CStringArray headings;
 	CStringArray row;
 	String buffer;
 	uint16_t tailpos{0};
 	uint16_t taillen{0};
-	char fieldSeparator;
 };

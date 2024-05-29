@@ -30,42 +30,35 @@
  */
 #define READ_OFFSET size_t(1)
 
-bool CsvParser::parse(Stream& source, bool eof)
+bool CsvParser::parse(const RowCallback& callback, Stream& source, bool eof)
 {
 	for(;;) {
 		auto len = fillBuffer(source);
-		if(!eof && len < maxLineLength) {
+		if(!eof && len < options.lineLength) {
 			return false;
 		}
 		if(!parseRow(eof)) {
 			return false;
 		}
-		if(row.length() && !rowCallback(*this, row)) {
+		if(row.length() && !callback(*this, row)) {
 			return false;
 		}
 	}
 }
 
-void CsvParser::setHeadings()
-{
-	this->headings = row;
-	start = sourcePos - taillen;
-	cursor = BOF;
-}
-
-bool CsvParser::parse(const char* data, size_t length)
+bool CsvParser::parse(const RowCallback& callback, const char* data, size_t length)
 {
 	bool eof = (length == 0);
 	LimitedMemoryStream source(const_cast<char*>(data), length, length, false);
 	for(;;) {
 		auto len = fillBuffer(source);
-		if(!eof && len < maxLineLength) {
+		if(!eof && len < options.lineLength) {
 			return false;
 		}
 		if(!parseRow(eof)) {
 			return false;
 		}
-		if(row.length() && !rowCallback(*this, row)) {
+		if(row.length() && !callback(*this, row)) {
 			return false;
 		}
 	}
@@ -75,7 +68,7 @@ bool CsvParser::readRow(IDataSourceStream& source)
 {
 	auto len = fillBuffer(source);
 	bool eof = source.isFinished();
-	if(len < maxLineLength && !eof) {
+	if(len < options.lineLength && !eof) {
 		return false;
 	}
 	return parseRow(eof);
@@ -97,7 +90,7 @@ void CsvParser::reset()
 size_t CsvParser::fillBuffer(Stream& source)
 {
 	const size_t minBufSize{512};
-	const size_t maxbuflen = std::max(minBufSize, READ_OFFSET + maxLineLength + 2);
+	const size_t maxbuflen = std::max(minBufSize, READ_OFFSET + options.lineLength + 2);
 
 	char* bufptr;
 	size_t buflen;
@@ -142,7 +135,7 @@ bool CsvParser::parseRow(bool eof)
 	constexpr char quoteChar{'"'};
 
 	// Fields separated by whitespace and ignore leading/trailing whitespace
-	bool wssep = (fieldSeparator == '\0');
+	bool wssep = (options.fieldSeparator == '\0');
 
 	/*
 	 * Ensure readpos > writepos.
@@ -179,6 +172,9 @@ bool CsvParser::parseRow(bool eof)
 				flags.comment = false;
 				break;
 			}
+			if(options.wantComments) {
+				bufptr[writepos++] = c;
+			}
 			continue;
 		}
 		if(flags.escape) {
@@ -201,8 +197,11 @@ bool CsvParser::parseRow(bool eof)
 				if(wssep && isspace(c)) {
 					continue;
 				}
-				if(wssep && c == '#') {
+				if(options.commentChars && strchr(options.commentChars, c)) {
 					flags.comment = true;
+					if(options.wantComments) {
+						bufptr[writepos++] = c;
+					}
 					continue;
 				}
 				if(c == quoteChar) {
@@ -232,7 +231,7 @@ bool CsvParser::parseRow(bool eof)
 					continue;
 				} else if(c == '\n') {
 					break;
-				} else if((wssep && isspace(c)) || c == fieldSeparator) {
+				} else if((wssep && isspace(c)) || c == options.fieldSeparator) {
 					c = '\0';
 					fieldKind = FieldKind::unknown;
 				}
