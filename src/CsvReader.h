@@ -20,7 +20,6 @@
 #pragma once
 
 #include "CsvParser.h"
-#include <Data/Stream/DataSourceStream.h>
 #include <memory>
 
 class CsvReader : public CsvParser
@@ -53,7 +52,7 @@ public:
 	 */
 	bool next()
 	{
-		return source ? readRow(*source, source->isFinished()) : false;
+		return source ? readRow(*source) : false;
 	}
 
 	/**

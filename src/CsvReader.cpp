@@ -26,7 +26,7 @@ CsvReader::CsvReader(IDataSourceStream* source, char fieldSeparator, const CStri
 	: CsvParser(nullptr, fieldSeparator, headings, maxLineLength), source(source)
 {
 	if(source && !getHeadings()) {
-		readRow(*source, false);
+		readRow(*source);
 		setHeadings();
 	}
 	cursor = BOF;
@@ -52,5 +52,5 @@ bool CsvReader::seek(int cursor)
 		// Before first record has been read
 		return true;
 	}
-	return readRow(*source, source->isFinished());
+	return readRow(*source);
 }

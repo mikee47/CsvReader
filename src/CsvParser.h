@@ -21,7 +21,7 @@
 
 #include <Delegate.h>
 #include <Data/CStringArray.h>
-#include <Stream.h>
+#include <Data/Stream/DataSourceStream.h>
 
 /**
  * @brief Class to parse a CSV file
@@ -145,7 +145,9 @@ public:
 	}
 
 protected:
-	bool readRow(Stream& source, bool eof);
+	size_t fillBuffer(Stream& source);
+	bool parseRow(bool eof);
+	bool readRow(IDataSourceStream& source);
 	void setHeadings();
 
 	static constexpr int BOF{-1}; ///< Indicates 'Before First Record'
@@ -156,6 +158,7 @@ protected:
 
 private:
 	RowCallback rowCallback;
+
 	size_t maxLineLength;
 	CStringArray headings;
 	CStringArray row;

@@ -23,21 +23,27 @@
 
 #define DEBUG_PARSER 0
 
-bool CsvParser::parse(Stream& source, bool isFinished)
+/*
+ * Ensure readpos > writepos.
+ * Row data is always <= source length, but when result is converted (in-situ) to CStringArray
+ * an additional '\0' (NUL) could overwrite our tail data.
+ */
+#define READ_OFFSET size_t(1)
+
+bool CsvParser::parse(Stream& source, bool eof)
 {
-	while(readRow(source, isFinished)) {
-		if(!row) {
-			continue;
+	for(;;) {
+		auto len = fillBuffer(source);
+		if(!eof && len < maxLineLength) {
+			return false;
 		}
-		if(!headings) {
-			setHeadings();
-			continue;
+		if(!parseRow(eof)) {
+			return false;
 		}
-		if(rowCallback && !rowCallback(*this, row)) {
+		if(row.length() && !rowCallback(*this, row)) {
 			return false;
 		}
 	}
-	return true;
 }
 
 void CsvParser::setHeadings()
@@ -49,26 +55,91 @@ void CsvParser::setHeadings()
 
 bool CsvParser::parse(const char* data, size_t length)
 {
-	LimitedMemoryStream stream(const_cast<char*>(data), length, length, false);
-	return parse(stream, length == 0);
+	bool eof = (length == 0);
+	LimitedMemoryStream source(const_cast<char*>(data), length, length, false);
+	for(;;) {
+		auto len = fillBuffer(source);
+		if(!eof && len < maxLineLength) {
+			return false;
+		}
+		if(!parseRow(eof)) {
+			return false;
+		}
+		if(row.length() && !rowCallback(*this, row)) {
+			return false;
+		}
+	}
+}
+
+bool CsvParser::readRow(IDataSourceStream& source)
+{
+	auto len = fillBuffer(source);
+	bool eof = source.isFinished();
+	if(len < maxLineLength && !eof) {
+		return false;
+	}
+	return parseRow(eof);
 }
 
 void CsvParser::reset()
 {
 	if(!buffer) {
-		buffer = std::move(reinterpret_cast<String&>(row));
+		buffer = row.release();
 	}
-	buffer = "";
+	if(buffer) {
+		buffer.setLength(READ_OFFSET);
+	}
 	cursor = BOF;
 	sourcePos = start;
 	taillen = 0;
 }
 
-bool CsvParser::readRow(Stream& source, bool eof)
+size_t CsvParser::fillBuffer(Stream& source)
 {
-	constexpr size_t minBufSize{512};
+	const size_t minBufSize{512};
+	const size_t maxbuflen = std::max(minBufSize, READ_OFFSET + maxLineLength + 2);
+
+	char* bufptr;
+	size_t buflen;
+
+	if(buffer) {
+		bufptr = buffer.begin();
+		buflen = buffer.length();
+		cursor = sourcePos;
+	} else {
+		buffer = row.release();
+		if(!buffer.reserve(maxbuflen)) {
+			debug_e("[CSV] Out of memory %u", maxbuflen);
+			// flags.error = true;
+			return 0;
+		}
+
+		bufptr = buffer.begin();
+		if(taillen != 0) {
+			memmove(bufptr + READ_OFFSET, bufptr + tailpos, taillen);
+#if DEBUG_PARSER
+			m_putc('\n');
+			m_printHex("++", bufptr + READ_OFFSET, taillen);
+#endif
+		}
+		cursor = int(sourcePos - taillen);
+		buflen = READ_OFFSET + taillen;
+		taillen = 0;
+	}
+
+	auto len = source.readBytes(bufptr + buflen, maxbuflen - buflen);
+	if(len) {
+		sourcePos += len;
+		buflen += len;
+	}
+
+	buffer.setLength(buflen);
+	return buflen - READ_OFFSET;
+}
+
+bool CsvParser::parseRow(bool eof)
+{
 	constexpr char quoteChar{'"'};
-	const size_t maxbuflen = std::max(minBufSize, maxLineLength);
 
 	// Fields separated by whitespace and ignore leading/trailing whitespace
 	bool wssep = (fieldSeparator == '\0');
@@ -78,8 +149,8 @@ bool CsvParser::readRow(Stream& source, bool eof)
 	 * Row data is always <= source length, but when result is converted (in-situ) to CStringArray
 	 * an additional '\0' (NUL) could overwrite our tail data.
 	 */
-	unsigned writepos{0};
-	unsigned readpos{1};
+	unsigned writepos = 0;
+	unsigned readpos = READ_OFFSET;
 
 	struct Flags {
 		bool escape : 1;
@@ -98,41 +169,8 @@ bool CsvParser::readRow(Stream& source, bool eof)
 
 	char lastChar{'\0'};
 
-	if(!buffer) {
-		buffer = std::move(reinterpret_cast<String&>(row));
-	}
-
 	auto bufptr = buffer.begin();
-	if(taillen) {
-		memmove(bufptr + readpos, bufptr + tailpos, taillen);
-#if DEBUG_PARSER
-		m_putc('\n');
-		m_printHex("++", bufptr + readpos, taillen);
-#endif
-	}
-	cursor = int(sourcePos - taillen);
-	unsigned buflen = readpos + taillen;
-	buffer.setLength(buflen);
-	taillen = 0;
-
-	if(buflen < maxbuflen) {
-		if(!buffer.reserve(maxbuflen)) {
-			debug_e("[CSV] Out of memory %u", maxbuflen);
-			flags.error = true;
-			return false;
-		}
-		bufptr = buffer.begin();
-		auto len = source.readBytes(bufptr + buflen, maxbuflen - buflen);
-		if(len) {
-			sourcePos += len;
-			buflen += len;
-			buffer.setLength(buflen);
-		} else if(!eof) {
-			tailpos = readpos;
-			taillen = buflen - readpos;
-			return false;
-		}
-	}
+	auto buflen = buffer.length();
 
 	for(; readpos < buflen; ++readpos) {
 		char c = bufptr[readpos];
@@ -206,7 +244,6 @@ bool CsvParser::readRow(Stream& source, bool eof)
 		lastChar = c;
 	}
 
-	buffer.setLength(writepos);
 	if(readpos < buflen) {
 		tailpos = readpos + 1;
 		taillen = buflen - readpos - 1;
@@ -214,15 +251,17 @@ bool CsvParser::readRow(Stream& source, bool eof)
 		taillen = 0;
 	}
 
-	// Ignore blank lines
-	if(writepos == 0) {
-		return !eof || readpos < buflen;
-	}
-
+	buffer.setLength(writepos);
 	row = std::move(buffer);
 #if DEBUG_PARSER
 	m_putc('\n');
 	m_printHex(">>", row.c_str(), writepos);
 #endif
+
+	// Ignore blank lines
+	if(writepos == 0) {
+		return !eof || readpos < buflen;
+	}
+
 	return true;
 }
