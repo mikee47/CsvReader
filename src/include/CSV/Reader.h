@@ -1,9 +1,9 @@
-/**
+/****
  * Reader.h
  *
  * Copyright 2021 mikee47 <mike@sillyhouse.net>
  *
- * This file is part of the Reader Library
+ * This file is part of the CsvReader Library
  *
  * This library is free software: you can redistribute it and/or modify it under the terms of the
  * GNU General Public License as published by the Free Software Foundation, version 3 or later.
