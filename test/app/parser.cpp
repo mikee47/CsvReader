@@ -80,13 +80,13 @@ private:
 
 		char buffer[256];
 		int len;
-		while((len = file.read(buffer, sizeof(buffer)))) {
-			size_t offset{0};
-			while(offset < len && parser->readRow(buffer, len, &offset)) {
+		while((len = file.read(buffer, sizeof(buffer))) > 0) {
+			unsigned offset{0};
+			while(parser->push(buffer, len, offset)) {
 				handleRow();
 			}
 		}
-		while(parser->readRow(nullptr, 0, nullptr)) {
+		while(parser->flush()) {
 			handleRow();
 		}
 

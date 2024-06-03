@@ -32,14 +32,14 @@ namespace CSV
  */
 static const size_t READ_OFFSET = 1;
 
-bool Parser::readRow(Stream& source, bool eof)
+bool Parser::push(Stream& source)
 {
 	for(;;) {
 		auto len = fillBuffer(source);
-		if(!eof && len < options.lineLength) {
+		if(len < options.lineLength) {
 			return false;
 		}
-		if(!parseRow(eof)) {
+		if(!parseRow(false)) {
 			return false;
 		}
 		if(row.length()) {
@@ -48,17 +48,23 @@ bool Parser::readRow(Stream& source, bool eof)
 	}
 }
 
-bool Parser::readRow(const char* data, size_t length, size_t* offset)
+bool Parser::push(const char* data, size_t length, size_t& offset)
 {
 	LimitedMemoryStream source(const_cast<char*>(data), length, length, false);
-	if(offset) {
-		source.seekFrom(*offset, SeekOrigin::Start);
-	}
-	bool res = readRow(source, length == 0);
-	if(offset) {
-		*offset = source.getStreamPointer() - data;
-	}
+	source.seekFrom(offset, SeekOrigin::Start);
+	bool res = push(source);
+	offset = source.getStreamPointer() - data;
 	return res;
+}
+
+bool Parser::flush()
+{
+	while(parseRow(true)) {
+		if(row.length()) {
+			return true;
+		}
+	}
+	return false;
 }
 
 bool Parser::readRow(IDataSourceStream& source)

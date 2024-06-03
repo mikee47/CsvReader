@@ -106,30 +106,34 @@ public:
 	}
 
 	/**
-	 * @brief Read a single data row
+	 * @brief Read a single data row, taking data if required from provided Stream
 	 * @param source
-	 * @param isFinished Set to true when there is no further data available
 	 * @retval bool true if record available, false otherwise
-	 * @note There may still be one or more records available so call with
-	 * isFinished=true repeatedly until false is returned.
+	 * @note Call `flush()` after all data pushed
 	 */
-	bool readRow(Stream& source, bool isFinished);
+	bool push(Stream& source);
 
 	/**
-	 * @brief Read a single data row
+	 * @brief Read a single data row, taking data if required from provided buffer
 	 * @param data Buffer containing data to read
 	 * @param length Number of characters in data
-	 * @param offset Optional read offset in buffer, updated on return
-	 * @param consumed Number of characters read from provided data
+	 * @param offset Read offset in buffer, updated on return
 	 * @retval bool true if record available, false otherwise.
-	 * @note There may still be one or more records available so call with
-	 * length=0 repeatedly until false is returned.
+	 * @note Call `flush()` after all data pushed
 	 */
-	bool readRow(const char* data, size_t length, size_t* offset);
+	bool push(const char* data, size_t length, size_t& offset);
 
 	/**
-	 * @brief Read a single data row
+	 * @brief Call to read additional rows after all data pushed
+	 * @retval bool true if record available, false otherwise.
+	 * @note Call repeatedly until returns false
+	 */
+	bool flush();
+
+	/**
+	 * @brief Read a single data row using data from provided DataSourceStream
 	 * @retval bool false when there are no more rows
+	 * @note Returns false only on error or when source.isFinished() returns true.
 	 */
 	bool readRow(IDataSourceStream& source);
 
