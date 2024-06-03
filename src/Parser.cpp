@@ -86,7 +86,7 @@ void Parser::reset()
 	if(buffer) {
 		buffer.setLength(READ_OFFSET);
 	}
-	cursor = BOF;
+	cursor = {BOF};
 	sourcePos = start;
 	taillen = 0;
 }
@@ -102,7 +102,6 @@ size_t Parser::fillBuffer(Stream& source)
 	if(buffer) {
 		bufptr = buffer.begin();
 		buflen = buffer.length();
-		cursor = sourcePos;
 	} else {
 		buffer = row.release();
 		if(!buffer.reserve(maxbuflen)) {
@@ -119,7 +118,6 @@ size_t Parser::fillBuffer(Stream& source)
 			m_printHex("++", bufptr + READ_OFFSET, taillen);
 #endif
 		}
-		cursor = int(sourcePos - taillen);
 		buflen = READ_OFFSET + taillen;
 		taillen = 0;
 	}
@@ -168,6 +166,8 @@ bool Parser::parseRow(bool eof)
 
 	auto bufptr = buffer.begin();
 	auto buflen = buffer.length();
+
+	cursor = {int(sourcePos + READ_OFFSET - buflen)};
 
 	for(; readpos < buflen; ++readpos) {
 		char c = bufptr[readpos];
@@ -234,6 +234,7 @@ bool Parser::parseRow(bool eof)
 				if(c == '\r') {
 					continue;
 				} else if(c == '\n') {
+					cursor.end = cursor.start + readpos - READ_OFFSET;
 					break;
 				} else if((wssep && isspace(c)) || c == options.fieldSeparator) {
 					c = '\0';
@@ -252,6 +253,10 @@ bool Parser::parseRow(bool eof)
 		taillen = buflen - readpos - 1;
 	} else {
 		taillen = 0;
+	}
+
+	if(cursor.end == 0) {
+		cursor.end = sourcePos;
 	}
 
 	buffer.setLength(writepos);

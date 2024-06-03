@@ -128,7 +128,7 @@ public:
 	 */
 	int tell() const
 	{
-		return cursor;
+		return cursor.start;
 	}
 
 	/**
@@ -164,9 +164,9 @@ public:
 	/**
 	 * @brief Get cursor position for current row
 	 */
-	Cursor getCursor() const
+	const Cursor& getCursor() const
 	{
-		return {cursor, sourcePos - taillen};
+		return cursor;
 	}
 
 protected:
@@ -177,7 +177,7 @@ protected:
 
 	Options options;
 	unsigned start{0};	 ///< Stream position of first record
-	int cursor{BOF};	   ///< Stream position for start of current row
+	Cursor cursor{BOF};	///< Stream position for start of current row
 	unsigned sourcePos{0}; ///< Stream position for (one-past) end of current row
 
 private:

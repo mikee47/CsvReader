@@ -33,7 +33,7 @@ Reader::Reader(IDataSourceStream* source, char fieldSeparator, const CStringArra
 		this->headings = getRow();
 		start = getCursor().end;
 	}
-	cursor = BOF;
+	cursor = {BOF};
 }
 
 bool Reader::seek(int cursor)
@@ -51,7 +51,7 @@ bool Reader::seek(int cursor)
 		}
 		sourcePos = newpos;
 	}
-	this->cursor = cursor;
+	this->cursor = {cursor};
 	if(cursor < int(start)) {
 		// Before first record has been read
 		return true;
