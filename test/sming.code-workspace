@@ -1,0 +1,36 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "terminal.integrated.defaultProfile.windows": "Command Prompt",
+        "files.associations": {
+            "*.hw": "jsonc",
+            "*.fwfs": "jsonc",
+            "*.usbcfg": "jsonc",
+            "optional": "cpp"
+        },
+        "json.schemas": [
+            {
+                "fileMatch": [
+                    "*.hw"
+                ],
+                "url": "file:///home/mike/devcode/sming/Sming/Components/Storage/schema.json"
+            },
+            {
+                "fileMatch": [
+                    "*.fwfs"
+                ],
+                "url": "file:///home/mike/devcode/sming/Sming/Components/IFS/fsbuild/schema.json"
+            },
+            {
+                "fileMatch": [
+                    "*.usbcfg"
+                ],
+                "url": "file:///home/mike/devcode/sming/Sming/Libraries/USB/schema.json"
+            }
+        ]
+    }
+}
