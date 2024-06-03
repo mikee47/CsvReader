@@ -26,6 +26,36 @@
 namespace CSV
 {
 /**
+ * @brief Contains location details of the current record in the source stream
+ */
+struct Cursor {
+	int start;	///< BOF if there is no current record
+	unsigned end; ///< One-past end of record
+
+	/**
+	 * @brief Get number of source characters in record data
+	 */
+	size_t length() const
+	{
+		return (start < 0) ? 0 : end - unsigned(start);
+	}
+
+	/**
+	 * @brief Convenience operator for debugging, etc.
+	 */
+	operator String() const
+	{
+		String s;
+		s += '[';
+		s += start;
+		s += ',';
+		s += length();
+		s += ']';
+		return s;
+	}
+};
+
+/**
  * @brief Class to parse a CSV file
  *
  * Spec: https://www.ietf.org/rfc/rfc4180.txt
@@ -130,36 +160,6 @@ public:
 	{
 		return cursor.start;
 	}
-
-	/**
-	 * @brief Contains location details of the current record in the source stream
-	 */
-	struct Cursor {
-		int start;	///< BOF if there is no current record
-		unsigned end; ///< One-past end of record
-
-		/**
-		 * @brief Get number of source characters in record data
-		 */
-		size_t length() const
-		{
-			return (start < 0) ? 0 : end - unsigned(start);
-		}
-
-		/**
-		 * @brief Convenience operator for debugging, etc.
-		 */
-		operator String() const
-		{
-			String s;
-			s += '[';
-			s += start;
-			s += ',';
-			s += length();
-			s += ']';
-			return s;
-		}
-	};
 
 	/**
 	 * @brief Get cursor position for current row
