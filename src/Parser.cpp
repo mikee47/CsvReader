@@ -32,7 +32,7 @@ namespace CSV
  */
 static const size_t READ_OFFSET = 1;
 
-bool Parser::parse(const RowCallback& callback, Stream& source, bool eof)
+bool Parser::readRow(Stream& source, bool eof)
 {
 	for(;;) {
 		auto len = fillBuffer(source);
@@ -42,38 +42,40 @@ bool Parser::parse(const RowCallback& callback, Stream& source, bool eof)
 		if(!parseRow(eof)) {
 			return false;
 		}
-		if(row.length() && !callback(*this, row)) {
-			return false;
+		if(row.length()) {
+			return true;
 		}
 	}
 }
 
-bool Parser::parse(const RowCallback& callback, const char* data, size_t length)
+bool Parser::readRow(const char* data, size_t length, size_t* offset)
 {
-	bool eof = (length == 0);
 	LimitedMemoryStream source(const_cast<char*>(data), length, length, false);
-	for(;;) {
-		auto len = fillBuffer(source);
-		if(!eof && len < options.lineLength) {
-			return false;
-		}
-		if(!parseRow(eof)) {
-			return false;
-		}
-		if(row.length() && !callback(*this, row)) {
-			return false;
-		}
+	if(offset) {
+		source.seekFrom(*offset, SeekOrigin::Start);
 	}
+	bool res = readRow(source, length == 0);
+	if(offset) {
+		*offset = source.getStreamPointer() - data;
+	}
+	return res;
 }
 
 bool Parser::readRow(IDataSourceStream& source)
 {
-	auto len = fillBuffer(source);
-	bool eof = source.isFinished();
-	if(len < options.lineLength && !eof) {
-		return false;
+	for(;;) {
+		auto len = fillBuffer(source);
+		bool eof = source.isFinished();
+		if(!eof && len < options.lineLength) {
+			return false;
+		}
+		if(!parseRow(eof)) {
+			return false;
+		}
+		if(row.length()) {
+			return true;
+		}
 	}
-	return parseRow(eof);
 }
 
 void Parser::reset()

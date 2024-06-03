@@ -47,14 +47,6 @@ namespace CSV
 class Parser
 {
 public:
-	/**
-	 * @brief Callback invoked after a new row has been read
-	 * @param parser
-	 * @param row
-	 * @retval bool Return true to continue parsing, false to stop
-	 */
-	using RowCallback = Delegate<bool(const Parser& parser, const CStringArray& row)>;
-
 	struct Options {
 		/**
 		 * Optional list of characters matching start of comment line
@@ -84,22 +76,26 @@ public:
 	}
 
 	/**
-	 * @brief Parse all available data and invoke callback for each row
-	 * @param callback
+	 * @brief Read a single data row
 	 * @param source
-	 * @param isFinished Set to true when there is no further data available.
-	 * This ensures final line is processed if it isn't newline-terminated.
+	 * @param isFinished Set to true when there is no further data available
+	 * @retval bool true if record available, false otherwise
+	 * @note There may still be one or more records available so call with
+	 * isFinished=true repeatedly until false is returned.
 	 */
-	bool parse(const RowCallback& callback, Stream& source, bool isFinished);
+	bool readRow(Stream& source, bool isFinished);
 
 	/**
-	 * @brief Parse all available data and invoke callback for each row
-	 * @param callback Invoke for each row
+	 * @brief Read a single data row
 	 * @param data Buffer containing data to read
 	 * @param length Number of characters in data
-	 * Call with length = 0 to process final line if it isn't newline-terminated.
+	 * @param offset Optional read offset in buffer, updated on return
+	 * @param consumed Number of characters read from provided data
+	 * @retval bool true if record available, false otherwise.
+	 * @note There may still be one or more records available so call with
+	 * length=0 repeatedly until false is returned.
 	 */
-	bool parse(const RowCallback& callback, const char* data, size_t length);
+	bool readRow(const char* data, size_t length, size_t* offset);
 
 	/**
 	 * @brief Read a single data row
@@ -153,14 +149,14 @@ public:
 		/**
 		 * @brief Convenience operator for debugging, etc.
 		 */
-		explicit operator String() const
+		operator String() const
 		{
 			String s;
-			s += '{';
+			s += '[';
 			s += start;
 			s += ',';
 			s += length();
-			s += '}';
+			s += ']';
 			return s;
 		}
 	};

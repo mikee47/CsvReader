@@ -51,8 +51,6 @@ private:
 
 		Serial << endl << _F(">> Parse file '") << filename << '\'' << endl;
 
-		CSV::Parser::RowCallback callback(&ParserTest::handleRow, this);
-
 		CHECK(file.open(filename));
 		CSV::Parser::Options options{
 			.commentChars = "#",
@@ -69,9 +67,14 @@ private:
 		char buffer[256];
 		int len;
 		while((len = file.read(buffer, sizeof(buffer)))) {
-			parser->parse(callback, buffer, len);
+			size_t offset{0};
+			while(offset < len && parser->readRow(buffer, len, &offset)) {
+				handleRow();
+			}
 		}
-		parser->parse(callback, nullptr, 0);
+		while(parser->readRow(nullptr, 0, nullptr)) {
+			handleRow();
+		}
 
 		if(mode == Mode::timed) {
 			auto elapsed = timer.elapsedTicks();
@@ -80,14 +83,16 @@ private:
 		}
 	}
 
-	bool handleRow(const CSV::Parser& parser, const CStringArray& row)
+	bool handleRow()
 	{
+		auto& row = parser->getRow();
+		auto cursor = parser->getCursor();
 		switch(mode) {
 		case Mode::print:
-			Serial << "@" << parser.tell() << " " << row.count() << " COLS: " << row.join(", ") << endl;
+			Serial << "@" << cursor << " " << row.count() << " COLS: " << row.join(", ") << endl;
 			break;
 		case Mode::dump:
-			Serial << "@0x" << String(parser.tell(), HEX, 4) << " " << row.count() << " COLS:" << endl;
+			Serial << cursor << " " << row.count() << " COLS:" << endl;
 			for(auto cell : row) {
 				m_printHex("  CELL", cell, strlen(cell));
 			}
