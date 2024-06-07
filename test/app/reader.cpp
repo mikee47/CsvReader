@@ -13,10 +13,10 @@ DEFINE_FSTR_LOCAL(csv_row1, "Something \"awry\";datavalue 2;where,are,\"the,\nba
 DEFINE_FSTR_LOCAL(csv_row2, "one;two;three;four")
 DEFINE_FSTR_LOCAL(csv_row3, "a;b;c;d;e;f")
 
-class BasicTest : public TestGroup
+class ReaderTest : public TestGroup
 {
 public:
-	BasicTest() : TestGroup(_F("Basic Tests"))
+	ReaderTest() : TestGroup(_F("Reader Tests"))
 	{
 	}
 
@@ -81,7 +81,7 @@ public:
 	}
 };
 
-void REGISTER_TEST(basic)
+void REGISTER_TEST(reader)
 {
-	registerGroup<BasicTest>();
+	registerGroup<ReaderTest>();
 }
