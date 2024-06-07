@@ -37,12 +37,28 @@ public:
 	/**
 	 * @brief Construct a CSV reader
 	 * @param source Stream to read CSV text from
+	 * @param options
+	 * @param headings Required if source data does not contain field headings as first row
+	 */
+	Reader(IDataSourceStream* source, const Options& options, const CStringArray& headings = nullptr);
+
+	/**
+	 * @brief Construct a CSV reader
+	 * @param source Stream to read CSV text from
 	 * @param fieldSeparator
 	 * @param headings Required if source data does not contain field headings as first row
 	 * @param maxLineLength Limit size of buffer to guard against malformed data
 	 */
 	Reader(IDataSourceStream* source, char fieldSeparator = ',', const CStringArray& headings = nullptr,
-		   uint16_t maxLineLength = 2048);
+		   uint16_t maxLineLength = 2048)
+		: Reader(source,
+				 Options{
+					 .lineLength = maxLineLength,
+					 .fieldSeparator = fieldSeparator,
+				 },
+				 headings)
+	{
+	}
 
 	/**
 	 * @brief Reset reader to start of CSV file
@@ -120,11 +136,13 @@ public:
 		return headings;
 	}
 
+	using Parser::getCursor;
+
 	using Parser::tell;
 
 	/**
 	 * @brief Set reader to previously noted position
-	 * @param cursor Value obtained via `tell()`
+	 * @param offset Value obtained via `tell()` or Cursor::start
 	 * @retval bool true on success, false on failure or end of records
 	 * @note Source stream must support random seeking (seekFrom)
 	 *
@@ -133,9 +151,9 @@ public:
 	 *
 	 * Otherwise the corresponding row will be available via `getRow()`.
 	 */
-	bool seek(int cursor);
+	bool seek(int offset);
 
-	bool seek(Cursor cursor)
+	bool seek(const Cursor& cursor)
 	{
 		return seek(cursor.start);
 	}
@@ -143,6 +161,7 @@ public:
 private:
 	std::unique_ptr<IDataSourceStream> source;
 	CStringArray headings;
+	unsigned start{0}; ///< Stream position of first record
 };
 
 } // namespace CSV

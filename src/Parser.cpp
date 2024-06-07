@@ -84,7 +84,7 @@ bool Parser::readRow(IDataSourceStream& source)
 	}
 }
 
-void Parser::reset()
+void Parser::reset(int offset)
 {
 	if(!buffer) {
 		buffer = row.release();
@@ -92,8 +92,8 @@ void Parser::reset()
 	if(buffer) {
 		buffer.setLength(READ_OFFSET);
 	}
-	cursor = {BOF};
-	sourcePos = start;
+	cursor = {offset};
+	sourcePos = std::max(offset, 0);
 	taillen = 0;
 }
 

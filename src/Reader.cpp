@@ -21,38 +21,28 @@
 
 namespace CSV
 {
-Reader::Reader(IDataSourceStream* source, char fieldSeparator, const CStringArray& headings, uint16_t maxLineLength)
-	: Parser(Options{
-		  .lineLength = maxLineLength,
-		  .fieldSeparator = fieldSeparator,
-	  }),
-	  source(source), headings(headings)
+Reader::Reader(IDataSourceStream* source, const Options& options, const CStringArray& headings)
+	: Parser(options), source(source), headings(headings)
 {
 	if(source && !headings) {
 		readRow(*source);
 		this->headings = getRow();
-		start = getCursor().end;
+		start = getStreamPos();
 	}
-	cursor = {BOF};
 }
 
-bool Reader::seek(int cursor)
+bool Reader::seek(int offset)
 {
-	int curpos = sourcePos;
-	Parser::reset();
 	if(!source) {
 		return false;
 	}
-	auto newpos = std::max(cursor, int(start));
-	if(newpos != curpos) {
-		int pos = source->seekFrom(newpos, SeekOrigin::Start);
-		if(pos != newpos) {
-			return false;
-		}
-		sourcePos = newpos;
+	int newpos = std::max(offset, int(start));
+	int pos = source->seekFrom(newpos, SeekOrigin::Start);
+	if(pos != newpos) {
+		return false;
 	}
-	this->cursor = {cursor};
-	if(cursor < int(start)) {
+	Parser::reset(newpos);
+	if(offset < int(start)) {
 		// Before first record has been read
 		return true;
 	}

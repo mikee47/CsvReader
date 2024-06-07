@@ -71,8 +71,11 @@ struct Cursor {
  * Additional features:
  *
  * - Line breaks can be \n or \r\n
- * - Escapes codes within fields will be converted: \n \r \t \", \\
+ * - Escapes codes within quoted fields will be converted: \n \r \t \", \\
  * - Field separator can be changed in constructor
+ * - Comment lines can be read and returned or discarded
+ *
+ * This is a 'push' parser so can handle source data of indefinite size.
  */
 class Parser
 {
@@ -96,6 +99,8 @@ public:
 		 */
 		bool wantComments = false;
 	};
+
+	static constexpr int BOF{-1}; ///< Indicates 'Before First Record'
 
 	/**
 	 * @brief Construct a CSV parser
@@ -139,12 +144,10 @@ public:
 
 	/**
 	 * @brief Reset parser to initial conditions
-	 *
-	 * Call this method if re-parsing the same data source.
-	 * Cursor is set to 'before start'.
-	 * Headings are preserved.
+	 * @param offset Initial location for cursor
+	 * @note Used by Reader when seeking
 	 */
-	void reset();
+	void reset(int offset = BOF);
 
 	/**
 	 * @brief Get current row
@@ -173,20 +176,28 @@ public:
 		return cursor;
 	}
 
-protected:
+	/**
+	 * @brief Get stream position where next record will be read from
+	 */
+	unsigned getStreamPos() const
+	{
+		return sourcePos - taillen;
+	}
+
+	const Options& getOptions() const
+	{
+		return options;
+	}
+
+private:
 	size_t fillBuffer(Stream& source);
 	bool parseRow(bool eof);
 
-	static constexpr int BOF{-1}; ///< Indicates 'Before First Record'
-
 	Options options;
-	unsigned start{0};	 ///< Stream position of first record
-	Cursor cursor{BOF};	///< Stream position for start of current row
-	unsigned sourcePos{0}; ///< Stream position for (one-past) end of current row
-
-private:
 	CStringArray row;
 	String buffer;
+	Cursor cursor{BOF};	///< Stream position for start of current row
+	unsigned sourcePos{0}; ///< Source stream position (including read-ahead buffering)
 	uint16_t tailpos{0};
 	uint16_t taillen{0};
 };

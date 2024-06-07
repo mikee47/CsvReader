@@ -101,7 +101,7 @@ private:
 			file.seek(cursor.start, SeekOrigin::Start);
 			String s;
 			s.setLength(cursor.length());
-			CHECK(file.read(s.begin(), s.length()) == s.length());
+			CHECK_EQ(file.read(s.begin(), s.length()), int(s.length()));
 			// m_printHex("LINE", s.c_str(), s.length());
 			Serial << s << endl;
 		}
