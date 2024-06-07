@@ -71,7 +71,7 @@ struct Cursor {
  * Additional features:
  *
  * - Line breaks can be \n or \r\n
- * - Escapes codes within quoted fields will be converted: \n \r \t \", \\
+ * - Escapes codes within quoted fields can be converted: \n \r \t \", \\
  * - Field separator can be changed in constructor
  * - Comment lines can be read and returned or discarded
  *
@@ -80,6 +80,9 @@ struct Cursor {
 class Parser
 {
 public:
+	/**
+	 * @brief Parsing options
+	 */
 	struct Options {
 		/**
 		 * Optional list of characters matching start of comment line
@@ -94,6 +97,10 @@ public:
 		 * or '\0' for whitespace-separated fields with leading/trailing whitespace discarded
 		 */
 		char fieldSeparator = ',';
+		/**
+		 * @brief Set to true to handle escape sequences (\n, \t, etc.)
+		 */
+		bool parseEscape = false;
 		/**
 		 * @brief Set to true to return comment lines, otherwise they're discarded
 		 */
@@ -190,7 +197,7 @@ public:
 	}
 
 private:
-	size_t fillBuffer(Stream& source);
+	size_t fillBuffer(Stream* source);
 	bool parseRow(bool eof);
 
 	Options options;

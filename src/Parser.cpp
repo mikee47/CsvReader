@@ -35,7 +35,7 @@ static const size_t READ_OFFSET = 1;
 bool Parser::push(Stream& source)
 {
 	for(;;) {
-		auto len = fillBuffer(source);
+		auto len = fillBuffer(&source);
 		if(len < options.lineLength) {
 			return false;
 		}
@@ -59,18 +59,21 @@ bool Parser::push(const char* data, size_t length, size_t& offset)
 
 bool Parser::flush()
 {
-	while(parseRow(true)) {
+	for(;;) {
+		fillBuffer(nullptr);
+		if(!parseRow(true)) {
+			return false;
+		}
 		if(row.length()) {
 			return true;
 		}
 	}
-	return false;
 }
 
 bool Parser::readRow(IDataSourceStream& source)
 {
 	for(;;) {
-		auto len = fillBuffer(source);
+		auto len = fillBuffer(&source);
 		bool eof = source.isFinished();
 		if(!eof && len < options.lineLength) {
 			return false;
@@ -97,7 +100,7 @@ void Parser::reset(int offset)
 	taillen = 0;
 }
 
-size_t Parser::fillBuffer(Stream& source)
+size_t Parser::fillBuffer(Stream* source)
 {
 	const size_t minBufSize{512};
 	const size_t maxbuflen = std::max(minBufSize, READ_OFFSET + options.lineLength + 2);
@@ -128,10 +131,12 @@ size_t Parser::fillBuffer(Stream& source)
 		taillen = 0;
 	}
 
-	auto len = source.readBytes(bufptr + buflen, maxbuflen - buflen);
-	if(len) {
-		sourcePos += len;
-		buflen += len;
+	if(source) {
+		auto len = source->readBytes(bufptr + buflen, maxbuflen - buflen);
+		if(len) {
+			sourcePos += len;
+			buflen += len;
+		}
 	}
 
 	buffer.setLength(buflen);
@@ -180,6 +185,7 @@ bool Parser::parseRow(bool eof)
 		if(flags.comment) {
 			if(c == '\n') {
 				flags.comment = false;
+				cursor.end = cursor.start + readpos - READ_OFFSET;
 				break;
 			}
 			if(options.wantComments) {
@@ -233,7 +239,7 @@ bool Parser::parseRow(bool eof)
 					}
 					continue;
 				}
-			} else if(c == '\\') {
+			} else if(c == '\\' && options.parseEscape) {
 				flags.escape = true;
 				continue;
 			} else if(!flags.quote) {

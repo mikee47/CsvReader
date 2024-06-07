@@ -54,6 +54,8 @@ void init()
 	Serial.begin(SERIAL_BAUD_RATE);
 	Serial.systemDebugOutput(true);
 
+	fwfs_mount();
+
 	registerTests();
 	beginTests();
 }
