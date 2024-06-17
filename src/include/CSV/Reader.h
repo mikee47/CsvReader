@@ -36,7 +36,7 @@ class Reader : private Parser
 public:
 	/**
 	 * @brief Construct a CSV reader
-	 * @param source Stream to read CSV text from
+	 * @param source Stream to read CSV text from, reader takes ownership
 	 * @param options
 	 * @param headings Required if source data does not contain field headings as first row
 	 */
