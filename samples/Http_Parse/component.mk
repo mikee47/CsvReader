@@ -1,0 +1,2 @@
+COMPONENT_DEPENDS := CsvReader
+ENABLE_SSL ?= Bearssl

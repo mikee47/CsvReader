@@ -1,0 +1,25 @@
+{
+	"name": "Csv Reader Tests",
+	"base_config": "standard",
+	"options": [
+		"2m"
+	],
+	"partitions": {
+		"fwfs0": {
+			"address": "0x100000",
+			"size": "0x40000",
+			"type": "data",
+			"subtype": "fwfs",
+			"filename": "$(FW_BASE)/fwfs1.bin",
+			"build": {
+				"target": "fwfs-build",
+				"config": {
+					"name": "CsvReader test data",
+					"source": {
+						"/": "files"
+					}
+				}
+			}
+		}
+	}
+}
