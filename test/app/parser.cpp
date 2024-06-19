@@ -122,7 +122,7 @@ private:
 		char buffer[55];
 		int len;
 		while((len = file.read(buffer, sizeof(buffer))) > 0) {
-			unsigned offset{0};
+			size_t offset{0};
 			while(parser->push(buffer, len, offset)) {
 				handleRow();
 			}
